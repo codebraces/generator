@@ -4,7 +4,7 @@ const process = require("process");
 const readConfig = require("./initializer");
 const initApp = require("./generators/app");
 
-(async function() {
+
   // const config = await readConfig();
 
   program
@@ -15,7 +15,7 @@ const initApp = require("./generators/app");
     .command("init [name]")
     .description("Generate a class component")
     .option("-r, --redux", "Integrate Redux with React app")
+    .option("--skip-install", "Skip installation of packages")
     .action(initApp);
 
   program.parse(process.argv);
-})();

@@ -16,19 +16,14 @@ const babelrc = require('./templates/babelrc')
 const reactIndex = require('./templates/reactIndex');
 const reduxIndex = require('./templates/reduxIndex');
 
-const generateClassComponent = require('./generateClassComponent');
+// const generateClassComponent = require('./generateClassComponent');
 
 const exec = promisify(child_process.exec);
 const mkdir = promisify(fs.mkdir);
 const appendFile = promisify(fs.appendFile);
 
-module.exports = async function intiApp(name, { redux }) {
+module.exports = async function intiApp(name, { redux, skipInstall }) {
   const paths = new Paths(name)
-
-  generateClassComponent();
-
-  return;
-
   if (name) {
     try {
       await mkdir(paths.root);
@@ -38,7 +33,7 @@ module.exports = async function intiApp(name, { redux }) {
     }
   }
 
-  await intiNpmWithDependencies(paths, redux);
+  await intiNpm(paths);
   await initConfigFiles(paths);
   await initFolderStructure(paths);
 
@@ -46,6 +41,9 @@ module.exports = async function intiApp(name, { redux }) {
     await initRedux(paths);
   } else {
     await initReact(paths);
+  }
+  if (!skipInstall) {
+    await installPackages(paths, redux);
   }
 }
 
@@ -69,19 +67,31 @@ function initializeConponents() {
 
 }
 
-async function intiNpmWithDependencies(paths, redux) {
+async function intiNpm(paths) {
   const spinner = ora();
   spinner.start("Initializing npm...");
   await exec("npm init -y", {
     cwd: paths.root,
   });
-  await exec(`npm i -s ${redux ? dependencies.redux : dependencies.react}`, {
+
+  spinner.succeed("npm initialized");
+}
+
+async function installPackages(paths, redux) {
+  const spinner = ora();
+  spinner.start("Installing packages...");
+
+  await exec(`npm i -s ${redux ? dependencies.redux.join(" ") : dependencies.react.join(" ")}`, {
     cwd: paths.root,
   });
-  await exec(`npm i --save-dev ${dependencies.dev}`, {
-    cwd: paths.root,
-  });
-  spinner.succeed("npm initialized with dependencies.");
+  await exec(
+    `npm i --save-dev ${dependencies.dev.join(" ")}`,
+    {
+      cwd: paths.root,
+    }
+  );
+  spinner.succeed("Packages installed.");
+
 }
 
 async function initConfigFiles(paths) {
@@ -97,7 +107,6 @@ async function initConfigFiles(paths) {
     appendFile(`${paths.root}/.babelrc`, babelrc),
   ]);
   spinner.succeed("Config files initialized.");
-
 }
 
 async function initFolderStructure(paths) {
